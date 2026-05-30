@@ -48,6 +48,5 @@ public class Main {
         }
 
         return command + ": not found";
-//        return System.getenv("PATH");
     }
 }
