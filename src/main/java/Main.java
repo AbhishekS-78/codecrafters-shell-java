@@ -41,10 +41,17 @@ public class Main {
         String path = System.getenv("PATH");
         String[] pathDirs = path.split(File.pathSeparator);
 
+        // Windows executable extensions to try
+        String[] extensions = System.getProperty("os.name").toLowerCase().contains("win")
+                ? new String[]{"", ".exe", ".cmd", ".bat"}
+                : new String[]{""};
+
         for (String pathDir : pathDirs) {
-            File file = new File(pathDir, command + ".exe");
-            if (file.exists() && file.canExecute())
-                return command + " is " + file.getAbsolutePath();
+            for (String ext : extensions) {
+                File file = new File(pathDir, command + ext);
+                if (file.exists() && file.canExecute())
+                    return command + " is " + file.getAbsolutePath();
+            }
         }
 
         return command + ": not found";
