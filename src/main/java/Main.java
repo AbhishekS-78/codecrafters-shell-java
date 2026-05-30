@@ -1,3 +1,4 @@
+import java.io.File;
 import java.util.Scanner;
 
 public class Main {
@@ -26,11 +27,27 @@ public class Main {
                     boolean isShellBuiltin = remaining.equals("exit") || remaining.equals("echo") || remaining.equals("type");
                     if (isShellBuiltin)
                         System.out.println(remaining + " is a shell builtin");
-                    else System.out.println(remaining + ": not found");
+                    else
+                        System.out.println(typePath(remaining));
                     break;
                 default:
                     System.out.println(command + ": command not found");
             }
         }
+    }
+
+    public static String typePath(String command) {
+//        Get PATH env
+        String path = System.getenv("PATH");
+        String[] pathDirs = path.split(File.pathSeparator);
+
+        for (String pathDir : pathDirs) {
+            File file = new File(pathDir, command + ".exe");
+            if (file.exists() && file.canExecute())
+                return command + " is " + file.getAbsolutePath();
+        }
+
+        return command + ": not found";
+//        return System.getenv("PATH");
     }
 }
