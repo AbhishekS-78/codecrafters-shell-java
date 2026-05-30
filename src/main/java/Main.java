@@ -36,6 +36,7 @@ public class Main {
         }
     }
 
+//    type command extension for executable files using PATH
     public static String typePath(String command) {
 //        Get PATH env
         String path = System.getenv("PATH");
