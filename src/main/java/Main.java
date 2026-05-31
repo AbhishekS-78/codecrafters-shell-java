@@ -22,7 +22,14 @@ public class Main {
                     break;
                 case "type":
                     // Check if argument is a builtin, otherwise search PATH
-                    boolean isShellBuiltin = arguments.equals("exit") || arguments.equals("echo") || arguments.equals("type") || arguments.equals("pwd");
+                    String[] shellBuiltins = {"exit", "echo", "type", "pwd", "cd", "mkdir"};
+                    boolean isShellBuiltin = false;
+                    for (String shellBuiltin : shellBuiltins) {
+                        if (arguments.equals(shellBuiltin)) {
+                            isShellBuiltin = true;
+                            break;
+                        }
+                    }
                     if (isShellBuiltin)
                         System.out.println(arguments + " is a shell builtin");
                     else
