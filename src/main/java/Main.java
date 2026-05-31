@@ -28,6 +28,9 @@ public class Main {
                     else
                         System.out.println(typePath(arguments));
                     break;
+                case "pwd":
+                    System.out.println(System.getProperty("user.dir"));
+                    break;
                 default:
                     // For non-builtins: verify executable exists, then run it
                     if (getExecutable(command) != null) {
@@ -36,9 +39,7 @@ public class Main {
                         fullCommand[0] = command;
                         System.arraycopy(commandArgs, 0, fullCommand, 1, commandArgs.length);
 
-                        ProcessBuilder pb = new ProcessBuilder(fullCommand);
-                        pb.inheritIO();         // Wire child process stdio to shell's stdio
-                        pb.start().waitFor();   // Wait for process to finish before next prompt
+                        runProcess(fullCommand);
                     } else
                         System.out.println(input + ": command not found");
             }
@@ -65,5 +66,11 @@ public class Main {
         if (path != null) return command + " is " + path;
 
         return command + ": not found";
+    }
+
+    public static void runProcess(String[] fullCommand) throws Exception {
+        ProcessBuilder pb = new ProcessBuilder(fullCommand);
+        pb.inheritIO();         // Wire child process stdio to shell's stdio
+        pb.start().waitFor();   // Wait for process to finish before next prompt
     }
 }
