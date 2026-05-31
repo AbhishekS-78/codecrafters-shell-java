@@ -35,8 +35,10 @@ public class Main {
                         fullCommand[0] = command;
                         System.arraycopy(commandArgs, 0, fullCommand, 1, commandArgs.length);
 
-                        Process process = Runtime.getRuntime().exec(fullCommand);
-                        process.getInputStream().transferTo(System.out);
+                        ProcessBuilder pb = new ProcessBuilder(fullCommand);
+                        pb.command().set(0, command);
+                        pb.inheritIO();
+                        pb.start().waitFor();
                     } else
                         System.out.println(input + ": command not found");
             }
