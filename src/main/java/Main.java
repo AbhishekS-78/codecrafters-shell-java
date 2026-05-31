@@ -27,16 +27,15 @@ public class Main {
                         System.out.println(typePath(arguments));
                     break;
                 default:
-                    command = getExecutable(command);       // Check if the command is an executable
-                    if (command != null) {
-//                        Restructure the command to get the arguments right
+                    String executable = getExecutable(command);  // full path: /usr/bin/ls
+                    if (executable != null) {
                         String[] commandArgs = arguments.split(" "),
                                 fullCommand = new String[1 + commandArgs.length];
-                        fullCommand[0] = command;
+                        fullCommand[0] = command;                // argv[0]: ls
                         System.arraycopy(commandArgs, 0, fullCommand, 1, commandArgs.length);
 
                         ProcessBuilder pb = new ProcessBuilder(fullCommand);
-                        pb.command().set(0, command);
+                        pb.command().set(0, executable);         // tell OS to run: /usr/bin/ls
                         pb.inheritIO();
                         pb.start().waitFor();
                     } else
