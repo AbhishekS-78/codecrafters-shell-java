@@ -33,9 +33,13 @@ public class Main {
                                 fullCommand = new String[1 + commandArgs.length];
                         fullCommand[0] = command;                // argv[0]: ls
                         System.arraycopy(commandArgs, 0, fullCommand, 1, commandArgs.length);
-
+//
+//                        ProcessBuilder pb = new ProcessBuilder(fullCommand);
+//                        pb.command().set(0, executable);         // tell OS to run: /usr/bin/ls
+//                        pb.inheritIO();
+//                        pb.start().waitFor();
+                        fullCommand[0] = command;  // just "custom_exe_1234"
                         ProcessBuilder pb = new ProcessBuilder(fullCommand);
-                        pb.command().set(0, executable);         // tell OS to run: /usr/bin/ls
                         pb.inheritIO();
                         pb.start().waitFor();
                     } else
