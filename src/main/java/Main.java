@@ -17,13 +17,16 @@ public class Main {
             switch (command) {
                 case "exit":
                     System.exit(0);
+
                 case "echo":
                     System.out.println(arguments);
                     break;
+
                 case "type":
                     // Check if argument is a builtin, otherwise search PATH
                     String[] shellBuiltins = {"exit", "echo", "type", "pwd", "cd", "mkdir"};
                     boolean isShellBuiltin = false;
+
                     for (String shellBuiltin : shellBuiltins) {
                         if (arguments.equals(shellBuiltin)) {
                             isShellBuiltin = true;
@@ -35,9 +38,20 @@ public class Main {
                     else
                         System.out.println(typePath(arguments));
                     break;
+
                 case "pwd":
                     System.out.println(System.getProperty("user.dir"));
                     break;
+
+                case "cd":
+                    if (arguments.startsWith("/")) {
+                        File file = new File(arguments);
+                        if (file.exists() && file.isDirectory())
+                            System.setProperty("user.dir", file.getAbsolutePath());
+                    } else
+                        System.out.println("cd: " + arguments + ": No such file or directory");
+                    break;
+
                 default:
                     // For non-builtins: verify executable exists, then run it
                     if (getExecutable(command) != null) {
