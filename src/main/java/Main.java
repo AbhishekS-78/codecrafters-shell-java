@@ -28,9 +28,6 @@ public class Main {
                     else
                         System.out.println(typePath(arguments));
                     break;
-                case "pwd":
-                    System.out.println(getExecutable("pwd"));
-                    break;
                 default:
                     // For non-builtins: verify executable exists, then run it
                     if (getExecutable(command) != null) {
