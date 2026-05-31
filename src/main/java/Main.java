@@ -48,6 +48,8 @@ public class Main {
                         File file = new File(arguments);
                         if (file.exists() && file.isDirectory())
                             System.setProperty("user.dir", file.getAbsolutePath());
+                        else
+                            System.out.println("cd: " + arguments + ": No such file or directory");
                     } else
                         System.out.println("cd: " + arguments + ": No such file or directory");
                     break;
