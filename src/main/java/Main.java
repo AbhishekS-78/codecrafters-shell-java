@@ -7,7 +7,7 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
-            System.out.print("$");
+            System.out.print("$ ");
 
             // Split input into command and arguments
             String input = scanner.nextLine(),
