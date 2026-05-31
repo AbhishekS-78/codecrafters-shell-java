@@ -6,54 +6,59 @@ public class Main {
     public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
 
-//        REPL: read-eval-print-loop
         while (true) {
             System.out.print("$ ");
 
-            String command = scanner.nextLine(),
-                    firstWord = !command.contains(" ") ? command : command.substring(0, command.indexOf(" ")),
-                    remaining = !command.contains(" ") ? "" : command.substring(command.indexOf(" ") + 1);
+            String input = scanner.nextLine(),
+                    command = !input.contains(" ") ? input : input.substring(0, input.indexOf(" ")),
+                    arguments = !input.contains(" ") ? "" : input.substring(input.indexOf(" ") + 1);
 
-//            exit command
-            switch (firstWord) {
+            switch (command) {
                 case "exit":
                     System.exit(0);
                 case "echo":
-//                echo command
-                    System.out.println(remaining);
+                    System.out.println(arguments);
                     break;
                 case "type":
-//                type command
-                    boolean isShellBuiltin = remaining.equals("exit") || remaining.equals("echo") || remaining.equals("type");
+                    boolean isShellBuiltin = arguments.equals("exit") || arguments.equals("echo") || arguments.equals("type");
                     if (isShellBuiltin)
-                        System.out.println(remaining + " is a shell builtin");
+                        System.out.println(arguments + " is a shell builtin");
                     else
-                        System.out.println(typePath(remaining));
+                        System.out.println(typePath(arguments));
                     break;
                 default:
-                    System.out.println(command + ": command not found");
+                    command = getExecutable(command);       // Check if the command is an executable
+                    if (command != null) {
+//                        Restructure the command to get the arguments right
+                        String[] commandArgs = arguments.split(" "),
+                                fullCommand = new String[1 + commandArgs.length];
+                        fullCommand[0] = command;
+                        System.arraycopy(commandArgs, 0, fullCommand, 1, commandArgs.length);
+
+                        Process process = Runtime.getRuntime().exec(fullCommand);
+                        process.getInputStream().transferTo(System.out);
+                    } else
+                        System.out.println(input + ": command not found");
             }
         }
     }
 
-//    type command extension for executable files using PATH
-    public static String typePath(String command) {
-//        Get PATH env
+    public static String getExecutable(String command) {
         String path = System.getenv("PATH");
         String[] pathDirs = path.split(File.pathSeparator);
 
-        // Windows executable extensions to try
-        String[] extensions = System.getProperty("os.name").toLowerCase().contains("win")
-                ? new String[]{"", ".exe", ".cmd", ".bat"}
-                : new String[]{""};
-
         for (String pathDir : pathDirs) {
-            for (String ext : extensions) {
-                File file = new File(pathDir, command + ext);
-                if (file.exists() && file.canExecute())
-                    return command + " is " + file.getAbsolutePath();
-            }
+            File file = new File(pathDir, command);
+            if (file.exists() && file.canExecute())
+                return file.getAbsolutePath();
         }
+
+        return null;
+    }
+
+    public static String typePath(String command) {
+        String path = getExecutable(command);
+        if (path != null) return command + " is " + path;
 
         return command + ": not found";
     }
