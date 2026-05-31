@@ -24,7 +24,7 @@ public class Main {
 
                 case "type":
                     // Check if argument is a builtin, otherwise search PATH
-                    String[] shellBuiltins = {"exit", "echo", "type", "pwd", "cd", "mkdir"};
+                    String[] shellBuiltins = {"exit", "echo", "type", "pwd", "cd"};
                     boolean isShellBuiltin = false;
 
                     for (String shellBuiltin : shellBuiltins) {
