@@ -44,9 +44,12 @@ public class Main {
                     break;
 
                 case "cd":
-                    File dir = arguments.startsWith("/")
-                            ? new File(arguments)
-                            : new File(System.getProperty("user.dir"), arguments);
+                    File dir;
+                    if (arguments.startsWith("/"))
+                        dir = new File(arguments);
+                    else
+                        dir = new File(System.getProperty("user.dir"), arguments);
+
                     // getCanonicalPath resolves ../ and ./ — getAbsolutePath doesn't
                     if (dir.exists() && dir.isDirectory())
                         System.setProperty("user.dir", dir.getCanonicalPath());
@@ -57,11 +60,7 @@ public class Main {
                 default:
                     // For non-builtins: verify executable exists, then run it
                     if (getExecutable(command) != null) {
-                        String[] commandArgs = arguments.split(" "),
-                                fullCommand = new String[1 + commandArgs.length];
-                        fullCommand[0] = command;
-                        System.arraycopy(commandArgs, 0, fullCommand, 1, commandArgs.length);
-
+                        String[] fullCommand = getFullCommand(command, arguments);
                         runProcess(fullCommand);
                     } else
                         System.out.println(input + ": command not found");
@@ -89,6 +88,15 @@ public class Main {
         if (path != null) return command + " is " + path;
 
         return command + ": not found";
+    }
+
+    public static String[] getFullCommand(String command, String arguments) {
+        String[] commandArgs = arguments.split(" "),
+                fullCommand = new String[1 + commandArgs.length];
+        fullCommand[0] = command;
+        System.arraycopy(commandArgs, 0, fullCommand, 1, commandArgs.length);
+
+        return fullCommand;
     }
 
     public static void runProcess(String[] fullCommand) throws Exception {
