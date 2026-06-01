@@ -44,10 +44,11 @@ public class Main {
                     break;
 
                 case "cd":
-                    // Resolve path relative to pwd, handles ./, ../, and absolute paths
-                    File dir = new File(System.getProperty("user.dir"), arguments);
+                    File dir = arguments.startsWith("/")
+                            ? new File(arguments)
+                            : new File(System.getProperty("user.dir"), arguments);
+                    // getCanonicalPath resolves ../ and ./ — getAbsolutePath doesn't
                     if (dir.exists() && dir.isDirectory())
-                        // getCanonicalPath resolves ../ and ./ — getAbsolutePath doesn't
                         System.setProperty("user.dir", dir.getCanonicalPath());
                     else
                         System.out.println("cd: " + arguments + ": No such file or directory");
