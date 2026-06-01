@@ -1,34 +1,47 @@
-[![progress-banner](https://backend.codecrafters.io/progress/shell/9963acbe-f058-400f-aca8-8791dd185759)](https://app.codecrafters.io/users/AbhishekS-78?r=2qF)
+# codecrafters-shell-java
 
-This is a starting point for Java solutions to the
-["Build Your Own Shell" Challenge](https://app.codecrafters.io/courses/shell/overview).
+A POSIX-style shell built from scratch in Java. Follows the [codecrafters.io shell challenge](https://codecrafters.io/challenges/shell).
 
-In this challenge, you'll build your own POSIX compliant shell that's capable of
-interpreting shell commands, running external programs and builtin commands like
-cd, pwd, echo and more. Along the way, you'll learn about shell command parsing,
-REPLs, builtin commands, and more.
+---
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+## Implementation Notes
 
-# Passing the first stage
+### REPL
+Input is split into `command` (first token) and `arguments` (remainder) on each iteration.
 
-The entry point for your `shell` implementation is in `src/main/java/Main.java`.
-Study and uncomment the relevant code, then run the command below to execute the
-tests on our servers:
+### Builtins
+`exit`, `echo`, `type`, `pwd`, `cd` are handled directly in Java — no subprocess.
 
-```sh
-codecrafters submit
+### `type`
+Walks each directory in `$PATH` looking for a matching executable. Reports builtin, external binary, or not found.
+
+### Running external programs
+`ProcessBuilder` is used over `Runtime.exec()` for stdio control. Pass the command name as typed for `argv[0]` — not the resolved absolute path. The OS handles `$PATH` resolution itself.
+
+
+### `pwd`
+```java
+System.out.println(System.getProperty("user.dir"));
 ```
 
-Time to move on to the next stage!
+### `cd`
+Handles absolute paths, relative paths (`./`, `../`, subdirectories), and `~` (expands to `$HOME`).
 
-# Stage 2 & beyond
+`getCanonicalPath()` is used over `getAbsolutePath()` to resolve `../` and `./` correctly.
 
-Note: This section is for stages 2 and beyond.
+---
 
-1. Ensure you have `mvn` installed locally
-1. Run `./your_program.sh` to run your program, which is implemented in
-   `src/main/java/Main.java`.
-1. Run `codecrafters submit` to submit your solution to CodeCrafters. Test
-   output will be streamed to your terminal.
+## Stack
+
+- Java 25 (Amazon Corretto)
+- Maven
+- Linux (Ubuntu)
+
+## Run locally
+
+```bash
+git clone https://github.com/your-username/codecrafters-shell-java
+cd codecrafters-shell-java
+mvn compile
+./your_program.sh
+```
