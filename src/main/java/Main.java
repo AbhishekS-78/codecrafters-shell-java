@@ -44,13 +44,12 @@ public class Main {
                     break;
 
                 case "cd":
-                    if (arguments.startsWith("/")) {
-                        File file = new File(arguments);
-                        if (file.exists() && file.isDirectory())
-                            System.setProperty("user.dir", file.getAbsolutePath());
-                        else
-                            System.out.println("cd: " + arguments + ": No such file or directory");
-                    } else
+                    // Resolve path relative to pwd, handles ./, ../, and absolute paths
+                    File dir = new File(System.getProperty("user.dir"), arguments);
+                    if (dir.exists() && dir.isDirectory())
+                        // getCanonicalPath resolves ../ and ./ — getAbsolutePath doesn't
+                        System.setProperty("user.dir", dir.getCanonicalPath());
+                    else
                         System.out.println("cd: " + arguments + ": No such file or directory");
                     break;
 
