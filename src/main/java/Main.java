@@ -47,6 +47,8 @@ public class Main {
                     File dir;
                     if (arguments.startsWith("/"))
                         dir = new File(arguments);
+                    else if (arguments.startsWith("~"))
+                        dir = new File(System.getenv("HOME"));
                     else
                         dir = new File(System.getProperty("user.dir"), arguments);
 
