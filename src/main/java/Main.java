@@ -1,4 +1,6 @@
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -19,7 +21,8 @@ public class Main {
                     System.exit(0);
 
                 case "echo":
-                    System.out.println(arguments);
+                    List<String> tokens = parseArguments(arguments);
+                    System.out.println(String.join(" ", tokens));
                     break;
 
                 case "type":
@@ -52,7 +55,7 @@ public class Main {
                     else
                         dir = new File(System.getProperty("user.dir"), arguments);
 
-                    // getCanonicalPath resolves ../ and ./ — getAbsolutePath doesn't
+                    // getCanonicalPath resolves ../ and ./ which getAbsolutePath() doesn't
                     if (dir.exists() && dir.isDirectory())
                         System.setProperty("user.dir", dir.getCanonicalPath());
                     else
@@ -61,7 +64,7 @@ public class Main {
 
                 default:
                     // For non-builtins: verify executable exists, then run it
-                    if (getExecutable(command) != null) {
+                    if (getExecutablePath(command) != null) {
                         String[] fullCommand = getFullCommand(command, arguments);
                         runProcess(fullCommand);
                     } else
@@ -71,7 +74,7 @@ public class Main {
     }
 
     // Walk each directory in PATH, return absolute path if executable found
-    public static String getExecutable(String command) {
+    public static String getExecutablePath(String command) {
         String path = System.getenv("PATH");
         String[] pathDirs = path.split(File.pathSeparator);
 
@@ -86,7 +89,7 @@ public class Main {
 
     // Return "cmd is /path/to/cmd" if found in PATH, else "cmd: not found"
     public static String typePath(String command) {
-        String path = getExecutable(command);
+        String path = getExecutablePath(command);
         if (path != null) return command + " is " + path;
 
         return command + ": not found";
@@ -105,5 +108,61 @@ public class Main {
         ProcessBuilder pb = new ProcessBuilder(fullCommand);
         pb.inheritIO();         // Wire child process stdio to shell's stdio
         pb.start().waitFor();   // Wait for process to finish before next prompt
+    }
+
+    /**
+     * Parses a raw argument string into a list of tokens, handling single-quoted strings.
+     *
+     * <p>Parsing rules:
+     * <ul>
+     *   <li>Characters inside single quotes are treated literally with no special meaning.</li>
+     *   <li>Whitespace inside single quotes is preserved and not used as a delimiter.</li>
+     *   <li>Whitespace outside quotes delimits tokens.</li>
+     *   <li>Adjacent quoted/unquoted segments with no space between them are concatenated
+     *       into a single token. e.g. {@code 'hello''world'} → {@code helloworld}</li>
+     * </ul>
+     *
+     * @param input the raw argument string (everything after the command name)
+     * @return a list of parsed tokens in order
+     *
+     * @example {@code parseArguments("'hello   world'")    → ["hello   world"]}
+     * @example {@code parseArguments("hello   world")      → ["hello", "world"]}
+     * @example {@code parseArguments("'hello''world'")     → ["helloworld"]}
+     * @example {@code parseArguments("hello''world")       → ["helloworld"]}
+     */
+    public static List<String> parseArguments(String input) {
+        List<String> tokens = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+
+        int i = 0;
+        while (i < input.length()) {
+            char c = input.charAt(i);
+
+            if (c == '\'') {
+                i++;    // Skip the opening '
+                while (i < input.length() && input.charAt(i) != '\'') {
+                    current.append(input.charAt(i));
+                    i++;
+                }
+                i++;    // Skip the closing '
+            } else if (c == ' ') {
+                // space outside quotes: token boundary
+                if (!current.isEmpty()) {
+                    tokens.add(current.toString());
+                    current.setLength(0); // reset for next token
+                }
+                i++;
+            } else {
+                // normal character is appended
+                current.append(c);
+                i++;
+            }
+        }
+
+        // add the last token if input doesn't end with a space
+        if (!current.isEmpty())
+            tokens.add(current.toString());
+
+        return tokens;
     }
 }
