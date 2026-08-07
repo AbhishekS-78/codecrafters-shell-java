@@ -11,35 +11,34 @@ public class Main {
         while (true) {
             System.out.print("$ ");
 
-            // Split input into command and arguments
-            String input = scanner.nextLine(),
-                    command = !input.contains(" ") ? input : input.substring(0, input.indexOf(" ")),
-                    arguments = !input.contains(" ") ? "" : input.substring(input.indexOf(" ") + 1);
+            String input = scanner.nextLine();
+
+            // Parse full input into tokens; handles quotes, spaces, concatenation
+            List<String> tokens = parseArguments(input);
+            if (tokens.isEmpty()) continue;
+
+            String command = tokens.get(0);
+            List<String> argTokens = tokens.subList(1, tokens.size());
 
             switch (command) {
                 case "exit":
                     System.exit(0);
 
                 case "echo":
-                    List<String> tokens = parseArguments(arguments);
-                    System.out.println(String.join(" ", tokens));
+                    System.out.println(String.join(" ", argTokens));
                     break;
 
                 case "type":
-                    // Check if argument is a builtin, otherwise search PATH
+                    String arg = argTokens.isEmpty() ? "" : argTokens.get(0);
                     String[] shellBuiltins = {"exit", "echo", "type", "pwd", "cd"};
                     boolean isShellBuiltin = false;
-
-                    for (String shellBuiltin : shellBuiltins) {
-                        if (arguments.equals(shellBuiltin)) {
-                            isShellBuiltin = true;
-                            break;
-                        }
+                    for (String builtin : shellBuiltins) {
+                        if (arg.equals(builtin)) { isShellBuiltin = true; break; }
                     }
                     if (isShellBuiltin)
-                        System.out.println(arguments + " is a shell builtin");
+                        System.out.println(arg + " is a shell builtin");
                     else
-                        System.out.println(typePath(arguments));
+                        System.out.println(typePath(arg));
                     break;
 
                 case "pwd":
@@ -47,25 +46,20 @@ public class Main {
                     break;
 
                 case "cd":
-                    File dir;
-                    if (arguments.startsWith("/"))
-                        dir = new File(arguments);
-                    else if (arguments.startsWith("~"))
-                        dir = new File(System.getenv("HOME"));
-                    else
-                        dir = new File(System.getProperty("user.dir"), arguments);
-
-                    // getCanonicalPath resolves ../ and ./ which getAbsolutePath() doesn't
+                    String path = argTokens.isEmpty() ? "~" : argTokens.get(0);
+                    File dir = path.startsWith("/") ? new File(path)
+                            : path.startsWith("~") ? new File(System.getenv("HOME"))
+                              : new File(System.getProperty("user.dir"), path);
                     if (dir.exists() && dir.isDirectory())
                         System.setProperty("user.dir", dir.getCanonicalPath());
                     else
-                        System.out.println("cd: " + arguments + ": No such file or directory");
+                        System.out.println("cd: " + path + ": No such file or directory");
                     break;
 
                 default:
-                    // For non-builtins: verify executable exists, then run it
                     if (getExecutablePath(command) != null) {
-                        String[] fullCommand = getFullCommand(command, arguments);
+                        // Build command array from parsed tokens — preserves quoted args
+                        String[] fullCommand = tokens.toArray(new String[0]);
                         runProcess(fullCommand);
                     } else
                         System.out.println(input + ": command not found");
@@ -73,45 +67,31 @@ public class Main {
         }
     }
 
-    // Walk each directory in PATH, return absolute path if executable found
     public static String getExecutablePath(String command) {
         String path = System.getenv("PATH");
         String[] pathDirs = path.split(File.pathSeparator);
-
         for (String pathDir : pathDirs) {
             File file = new File(pathDir, command);
             if (file.exists() && file.canExecute())
                 return file.getAbsolutePath();
         }
-
         return null;
     }
 
-    // Return "cmd is /path/to/cmd" if found in PATH, else "cmd: not found"
     public static String typePath(String command) {
         String path = getExecutablePath(command);
         if (path != null) return command + " is " + path;
-
         return command + ": not found";
-    }
-
-    public static String[] getFullCommand(String command, String arguments) {
-        String[] commandArgs = arguments.split(" "),
-                fullCommand = new String[1 + commandArgs.length];
-        fullCommand[0] = command;
-        System.arraycopy(commandArgs, 0, fullCommand, 1, commandArgs.length);
-
-        return fullCommand;
     }
 
     public static void runProcess(String[] fullCommand) throws Exception {
         ProcessBuilder pb = new ProcessBuilder(fullCommand);
-        pb.inheritIO();         // Wire child process stdio to shell's stdio
-        pb.start().waitFor();   // Wait for process to finish before next prompt
+        pb.inheritIO();
+        pb.start().waitFor();
     }
 
     /**
-     * Parses a raw argument string into a list of tokens, handling single-quoted strings.
+     * Parses a raw input string into a list of tokens, handling single-quoted strings.
      *
      * <p>Parsing rules:
      * <ul>
@@ -122,13 +102,8 @@ public class Main {
      *       into a single token. e.g. {@code 'hello''world'} → {@code helloworld}</li>
      * </ul>
      *
-     * @param input the raw argument string (everything after the command name)
+     * @param input the full input line including the command
      * @return a list of parsed tokens in order
-     *
-     * @example {@code parseArguments("'hello   world'")    → ["hello   world"]}
-     * @example {@code parseArguments("hello   world")      → ["hello", "world"]}
-     * @example {@code parseArguments("'hello''world'")     → ["helloworld"]}
-     * @example {@code parseArguments("hello''world")       → ["helloworld"]}
      */
     public static List<String> parseArguments(String input) {
         List<String> tokens = new ArrayList<>();
@@ -139,27 +114,24 @@ public class Main {
             char c = input.charAt(i);
 
             if (c == '\'') {
-                i++;    // Skip the opening '
+                i++;    // skip opening '
                 while (i < input.length() && input.charAt(i) != '\'') {
                     current.append(input.charAt(i));
                     i++;
                 }
-                i++;    // Skip the closing '
+                i++;    // skip closing '
             } else if (c == ' ') {
-                // space outside quotes: token boundary
                 if (!current.isEmpty()) {
                     tokens.add(current.toString());
-                    current.setLength(0); // reset for next token
+                    current.setLength(0);
                 }
                 i++;
             } else {
-                // normal character is appended
                 current.append(c);
                 i++;
             }
         }
 
-        // add the last token if input doesn't end with a space
         if (!current.isEmpty())
             tokens.add(current.toString());
 
