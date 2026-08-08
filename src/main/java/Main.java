@@ -111,23 +111,27 @@ public class Main {
 
         int i = 0;
         while (i < input.length()) {
-            char openingQuote = input.charAt(i);
+            char c = input.charAt(i);
 
-            if (openingQuote == '\'' || openingQuote == '\"') {
+            if (c == '\'' || c == '\"') {
+                char openingQuote = c;
                 i++;    // skip opening ' or "
                 while (i < input.length() && input.charAt(i) != openingQuote) {
                     current.append(input.charAt(i));
                     i++;
                 }
-                i++;    // skip closing '
-            } else if (openingQuote == ' ') {
+                i++;    // skip closing ' or "
+            } else if (c == ' ') {
                 if (!current.isEmpty()) {
                     tokens.add(current.toString());
                     current.setLength(0);
                 }
                 i++;
+            } else if (c == '\\') {
+                current.append(input.charAt(i+1));
+                i += 2;
             } else {
-                current.append(openingQuote);
+                current.append(c);
                 i++;
             }
         }
