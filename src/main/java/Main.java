@@ -17,7 +17,7 @@ public class Main {
             List<String> tokens = parseArguments(input);
             if (tokens.isEmpty()) continue;
 
-            String command = tokens.get(0);
+            String command = tokens.getFirst();
             List<String> argTokens = tokens.subList(1, tokens.size());
 
             switch (command) {
@@ -91,15 +91,15 @@ public class Main {
     }
 
     /**
-     * Parses a raw input string into a list of tokens, handling single-quoted strings.
+     * Parses a raw input string into a list of tokens, handling single-quoted or double-quoted strings.
      *
      * <p>Parsing rules:
      * <ul>
-     *   <li>Characters inside single quotes are treated literally with no special meaning.</li>
-     *   <li>Whitespace inside single quotes is preserved and not used as a delimiter.</li>
+     *   <li>Characters inside single/ double quotes are treated literally with no special meaning.</li>
+     *   <li>Whitespace inside single/ double quotes is preserved and not used as a delimiter.</li>
      *   <li>Whitespace outside quotes delimits tokens.</li>
      *   <li>Adjacent quoted/unquoted segments with no space between them are concatenated
-     *       into a single token. e.g. {@code 'hello''world'} → {@code helloworld}</li>
+     *       into a single token. e.g. {@code 'hello''world'} to {@code helloworld}</li>
      * </ul>
      *
      * @param input the full input line including the command
@@ -111,23 +111,23 @@ public class Main {
 
         int i = 0;
         while (i < input.length()) {
-            char c = input.charAt(i);
+            char openingQuote = input.charAt(i);
 
-            if (c == '\'') {
-                i++;    // skip opening '
-                while (i < input.length() && input.charAt(i) != '\'') {
+            if (openingQuote == '\'' || openingQuote == '\"') {
+                i++;    // skip opening ' or "
+                while (i < input.length() && input.charAt(i) != openingQuote) {
                     current.append(input.charAt(i));
                     i++;
                 }
                 i++;    // skip closing '
-            } else if (c == ' ') {
+            } else if (openingQuote == ' ') {
                 if (!current.isEmpty()) {
                     tokens.add(current.toString());
                     current.setLength(0);
                 }
                 i++;
             } else {
-                current.append(c);
+                current.append(openingQuote);
                 i++;
             }
         }
