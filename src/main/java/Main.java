@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -12,13 +13,30 @@ public class Main {
             System.out.print("$ ");
 
             String input = scanner.nextLine();
-
-            // Parse full input into tokens; handles quotes, spaces, concatenation
             List<String> tokens = parseArguments(input);
             if (tokens.isEmpty()) continue;
 
-            String command = tokens.getFirst();
-            List<String> argTokens = tokens.subList(1, tokens.size());
+            // Detect > or 1> redirection in token list
+            String outputFile = null;
+            List<String> cmdTokens = new ArrayList<>();
+            for (int i = 0; i < tokens.size(); i++) {
+                String t = tokens.get(i);
+                if ((t.equals(">") || t.equals("1>")) && i + 1 < tokens.size()) {
+                    outputFile = tokens.get(i + 1);
+                    i++; // skip the filename token
+                } else {
+                    cmdTokens.add(t);
+                }
+            }
+
+            String command = cmdTokens.get(0);
+            List<String> argTokens = cmdTokens.subList(1, cmdTokens.size());
+
+            // If redirecting, swap System.out to the target file for builtins
+            PrintStream originalOut = System.out;
+            if (outputFile != null) {
+                System.setOut(new PrintStream(outputFile));
+            }
 
             switch (command) {
                 case "exit":
@@ -53,17 +71,30 @@ public class Main {
                     if (dir.exists() && dir.isDirectory())
                         System.setProperty("user.dir", dir.getCanonicalPath());
                     else
-                        System.out.println("cd: " + path + ": No such file or directory");
+                        // cd errors go to stderr — not affected by stdout redirect
+                        System.err.println("cd: " + path + ": No such file or directory");
                     break;
 
                 default:
                     if (getExecutablePath(command) != null) {
-                        // Build command array from parsed tokens — preserves quoted args
-                        String[] fullCommand = tokens.toArray(new String[0]);
-                        runProcess(fullCommand);
-                    } else
+                        ProcessBuilder pb = new ProcessBuilder(cmdTokens);
+                        if (outputFile != null) {
+                            pb.redirectOutput(new File(outputFile)); // redirect stdout to file
+                            pb.redirectError(ProcessBuilder.Redirect.INHERIT); // stderr still to terminal
+                        } else {
+                            pb.inheritIO();
+                        }
+                        pb.start().waitFor();
+                    } else {
+                        // restore before printing error so it goes to terminal
+                        System.setOut(originalOut);
                         System.out.println(input + ": command not found");
+                    }
             }
+
+            // Restore System.out after builtin runs
+            if (outputFile != null)
+                System.setOut(originalOut);
         }
     }
 
@@ -113,9 +144,9 @@ public class Main {
         while (i < input.length()) {
             char c = input.charAt(i);
 
-            if (c == '\'' || c == '\"') {
+            if (c == '\'' || c == '"') {
                 char openingQuote = c;
-                i++;    // skip opening ' or "
+                i++;
                 while (i < input.length() && input.charAt(i) != openingQuote) {
                     if (openingQuote == '"') {
                         if (input.charAt(i) == '\\' && i + 1 < input.length()) {
@@ -132,21 +163,21 @@ public class Main {
                             i++;
                         }
                     } else {
-                        // single quotes: everything is literal, no exceptions
+                        // single quotes: everything literal
                         current.append(input.charAt(i));
                         i++;
                     }
                 }
-                i++;    // skip closing ' or "
+                i++; // skip closing quote
+            } else if (c == '\\') {
+                current.append(input.charAt(i + 1));
+                i += 2;
             } else if (c == ' ') {
                 if (!current.isEmpty()) {
                     tokens.add(current.toString());
                     current.setLength(0);
                 }
                 i++;
-            } else if (c == '\\') {
-                current.append(input.charAt(i+1));
-                i += 2;
             } else {
                 current.append(c);
                 i++;
