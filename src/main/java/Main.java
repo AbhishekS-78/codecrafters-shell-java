@@ -3,6 +3,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.io.FileOutputStream;
 
 public class Main {
 
@@ -20,6 +21,7 @@ public class Main {
             String outputFile = null;
             String errorFile = null;
             boolean appendOutput = false;
+            boolean appendError = false;
             List<String> cmdTokens = new ArrayList<>();
             for (int i = 0; i < tokens.size(); i++) {
                 String t = tokens.get(i);
@@ -29,9 +31,13 @@ public class Main {
                 } else if ((t.equals(">") || t.equals("1>")) && i + 1 < tokens.size()) {
                     outputFile = tokens.get(++i);
                     appendOutput = false;
+                } else if (t.equals("2>>") && i + 1 < tokens.size()) {
+                    errorFile = tokens.get(++i);
+                    appendError = true;
                 } else if (t.equals("2>") && i + 1 < tokens.size()) {
                     errorFile = tokens.get(++i);
-                } else {
+                    appendError = false;
+                }  else {
                     cmdTokens.add(t);
                 }
             }
@@ -42,8 +48,8 @@ public class Main {
             // If redirecting, swap System.out to the target file for builtins
             PrintStream originalOut = System.out;
             PrintStream originalErr = System.err;
-            if (outputFile != null) System.setOut(new PrintStream(new java.io.FileOutputStream(outputFile, appendOutput)));
-            if (errorFile != null) System.setErr(new PrintStream(new java.io.FileOutputStream(errorFile, false)));
+            if (outputFile != null) System.setOut(new PrintStream(new FileOutputStream(outputFile, appendOutput)));
+            if (errorFile != null) System.setErr(new PrintStream(new FileOutputStream(errorFile, appendError)));
 
             switch (command) {
                 case "exit":
@@ -90,7 +96,9 @@ public class Main {
                                 ? ProcessBuilder.Redirect.appendTo(new File(outputFile))
                                 : ProcessBuilder.Redirect.to(new File(outputFile)));
                         else pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-                        if (errorFile != null) pb.redirectError(new File(errorFile));
+                        if (errorFile != null) pb.redirectError(appendError
+                                ? ProcessBuilder.Redirect.appendTo(new File(errorFile))
+                                : ProcessBuilder.Redirect.to(new File(errorFile)));
                         else pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                         pb.start().waitFor();
                     } else {
