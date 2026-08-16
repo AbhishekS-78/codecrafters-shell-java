@@ -117,8 +117,20 @@ public class Main {
                 char openingQuote = c;
                 i++;    // skip opening ' or "
                 while (i < input.length() && input.charAt(i) != openingQuote) {
-                    current.append(input.charAt(i));
-                    i++;
+                    // inside double quotes: \ only escapes specific characters
+                    if (input.charAt(i) == '\\' && i + 1 < input.length()) {
+                        char next = input.charAt(i + 1);
+                        if (next == '"' || next == '\\') {
+                            current.append(next);  // consume the escaped char
+                            i += 2;
+                        } else {
+                            current.append(input.charAt(i));  // treat \ literally
+                            i++;
+                        }
+                    } else {
+                        current.append(input.charAt(i));
+                        i++;
+                    }
                 }
                 i++;    // skip closing ' or "
             } else if (c == ' ') {
