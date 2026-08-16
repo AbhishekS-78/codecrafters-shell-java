@@ -19,11 +19,16 @@ public class Main {
             // Detect > or 1> or 2> redirection in token list
             String outputFile = null;
             String errorFile = null;
+            boolean appendOutput = false;
             List<String> cmdTokens = new ArrayList<>();
             for (int i = 0; i < tokens.size(); i++) {
                 String t = tokens.get(i);
-                if ((t.equals(">") || t.equals("1>")) && i + 1 < tokens.size()) {
+                if ((t.equals(">>") || t.equals("1>>")) && i + 1 < tokens.size()) {
                     outputFile = tokens.get(++i);
+                    appendOutput = true;
+                } else if ((t.equals(">") || t.equals("1>")) && i + 1 < tokens.size()) {
+                    outputFile = tokens.get(++i);
+                    appendOutput = false;
                 } else if (t.equals("2>") && i + 1 < tokens.size()) {
                     errorFile = tokens.get(++i);
                 } else {
@@ -37,8 +42,8 @@ public class Main {
             // If redirecting, swap System.out to the target file for builtins
             PrintStream originalOut = System.out;
             PrintStream originalErr = System.err;
-            if (outputFile != null) System.setOut(new PrintStream(outputFile));
-            if (errorFile != null) System.setErr(new PrintStream(errorFile));
+            if (outputFile != null) System.setOut(new PrintStream(new java.io.FileOutputStream(outputFile, appendOutput)));
+            if (errorFile != null) System.setErr(new PrintStream(new java.io.FileOutputStream(errorFile, false)));
 
             switch (command) {
                 case "exit":
@@ -80,7 +85,10 @@ public class Main {
                 default:
                     if (getExecutablePath(command) != null) {
                         ProcessBuilder pb = new ProcessBuilder(cmdTokens);
-                        if (outputFile != null) pb.redirectOutput(new File(outputFile));
+                        // pb.redirectOutput lives here, inside default, where pb exists
+                        if (outputFile != null) pb.redirectOutput(appendOutput
+                                ? ProcessBuilder.Redirect.appendTo(new File(outputFile))
+                                : ProcessBuilder.Redirect.to(new File(outputFile)));
                         else pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
                         if (errorFile != null) pb.redirectError(new File(errorFile));
                         else pb.redirectError(ProcessBuilder.Redirect.INHERIT);
