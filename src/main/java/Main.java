@@ -16,14 +16,16 @@ public class Main {
             List<String> tokens = parseArguments(input);
             if (tokens.isEmpty()) continue;
 
-            // Detect > or 1> redirection in token list
+            // Detect > or 1> or 2> redirection in token list
             String outputFile = null;
+            String errorFile = null;
             List<String> cmdTokens = new ArrayList<>();
             for (int i = 0; i < tokens.size(); i++) {
                 String t = tokens.get(i);
                 if ((t.equals(">") || t.equals("1>")) && i + 1 < tokens.size()) {
-                    outputFile = tokens.get(i + 1);
-                    i++; // skip the filename token
+                    outputFile = tokens.get(++i);
+                } else if (t.equals("2>") && i + 1 < tokens.size()) {
+                    errorFile = tokens.get(++i);
                 } else {
                     cmdTokens.add(t);
                 }
@@ -34,9 +36,9 @@ public class Main {
 
             // If redirecting, swap System.out to the target file for builtins
             PrintStream originalOut = System.out;
-            if (outputFile != null) {
-                System.setOut(new PrintStream(outputFile));
-            }
+            PrintStream originalErr = System.err;
+            if (outputFile != null) System.setOut(new PrintStream(outputFile));
+            if (errorFile != null) System.setErr(new PrintStream(errorFile));
 
             switch (command) {
                 case "exit":
@@ -78,23 +80,20 @@ public class Main {
                 default:
                     if (getExecutablePath(command) != null) {
                         ProcessBuilder pb = new ProcessBuilder(cmdTokens);
-                        if (outputFile != null) {
-                            pb.redirectOutput(new File(outputFile)); // redirect stdout to file
-                            pb.redirectError(ProcessBuilder.Redirect.INHERIT); // stderr still to terminal
-                        } else {
-                            pb.inheritIO();
-                        }
+                        if (outputFile != null) pb.redirectOutput(new File(outputFile));
+                        else pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                        if (errorFile != null) pb.redirectError(new File(errorFile));
+                        else pb.redirectError(ProcessBuilder.Redirect.INHERIT);
                         pb.start().waitFor();
                     } else {
-                        // restore before printing error so it goes to terminal
                         System.setOut(originalOut);
                         System.out.println(input + ": command not found");
                     }
             }
 
             // Restore System.out after builtin runs
-            if (outputFile != null)
-                System.setOut(originalOut);
+            System.setOut(originalOut);
+            System.setErr(originalErr);
         }
     }
 
